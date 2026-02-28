@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, session
 import mysql.connector
 import base64
 
+import os
+
 app = Flask(__name__)
 app.secret_key = "secret123"
 
@@ -10,10 +12,10 @@ app.secret_key = "secret123"
 
 def get_db():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="esport_db"
+        host=os.environ.get("DB_HOST", "localhost"),
+        user=os.environ.get("DB_USER", "root"),
+        password=os.environ.get("DB_PASS", ""),
+        database=os.environ.get("DB_NAME", "esport_db")
     )
 
 
