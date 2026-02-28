@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Esports Hub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_style %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        {% block sidebar_title %}
+        <h2>🎮 ESPORTS</h2>
+        {% endblock %}
+
+        {% block sidebar_links %}
+        <a href="/">🏠 Home</a>
+        <a href="/teams">👥 Teams</a>
+        <a href="/tournaments">🏆 Tournaments</a>
+        <a href="/profile">❤️ Profile</a>
+        <a href="/logout">🚪 Logout</a>
+        {% endblock %}
+
+        <div style="margin-top: auto; padding-top: 20px;">
+            <button onclick="toggleTheme()" id="theme-btn" style="width:100%; border-radius:10px;">
+                🌙 Dark Mode
+            </button>
+        </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    <div class="flash-container" id="flashContainer">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash {{ category }}" id="flash-{{ loop.index }}">
+            <span class="flash-icon">
+                {% if category == 'success' %}✓{% elif category == 'error' %}✕{% elif category == 'warning' %}⚠{% else
+                %}ℹ{% endif %}
+            </span>
+            <span>{{ message }}</span>
+            <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
+        {% endwith %}
+    </div>
+    <script>
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s';
+                el.style.opacity = '0';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 4000);
+    </script>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <!-- ปุ่มกลับอัตโนมัติ ซ่อนในหน้าแรกและ admin -->
+        <script>
+            (function () {
+                var path = window.location.pathname;
+                var hide = ['/', '/login', '/admin'];
+                var shouldHide = hide.some(function (p) { return path === p || path.startsWith('/admin'); });
+                if (!shouldHide && window.history.length > 1) {
+                    document.write('<a class="back-btn" onclick="history.back(); return false;" href="#">← กลับ</a>');
+                }
+            })();
+        </script>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        const saved = localStorage.getItem('theme') || 'dark';
+        applyTheme(saved);
+
+        function toggleTheme() {
+            const current = document.body.classList.contains('light') ? 'light' : 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            localStorage.setItem('theme', next);
+        }
+
+        function applyTheme(theme) {
+            const btn = document.getElementById('theme-btn');
+            if (theme === 'light') {
+                document.body.classList.add('light');
+                if (btn) btn.textContent = '🌙 Dark Mode';
+            } else {
+                document.body.classList.remove('light');
+                if (btn) btn.textContent = '☀️ Light Mode';
+            }
+        }
+    </script>
+
+</body>
+
+</html>

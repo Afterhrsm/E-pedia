@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Teams - Esports Hub{% endblock %}
+
+{% block content %}
+
+<div class="topbar">
+    <input class="search" placeholder="Search team...">
+    <div class="profile">👤 {{ session.user }}</div>
+</div>
+
+<h1>👥 Teams</h1>
+
+<div class="team-container">
+    {% for team in teams %}
+    <a href="/team/{{ team.team_id }}" class="card-link" style="text-decoration:none;">
+        <div class="team-card">
+            {% if team.logo %}
+                <img src="data:image/jpeg;base64,{{ team.logo }}" alt="{{ team.team_name }}">
+            {% else %}
+                <img src="/static/default-logo.png" alt="No Logo">
+            {% endif %}
+            <h3>{{ team.team_name }}</h3>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+{% endblock %}

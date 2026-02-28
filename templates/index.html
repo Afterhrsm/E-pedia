@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Esports Pedia{% endblock %}
+
+
+
+{% block content %}
+
+{# ===== TOPBAR ===== #}
+<div class="topbar">
+    <div class="search-wrapper">
+        <input id="searchInput" placeholder="Search teams, players, games..." autocomplete="off">
+        <div id="searchDropdown" class="search-dropdown"></div>
+    </div>
+    <a href="/profile" style="color:white; text-decoration:none;" class="profile">👤 {{ session.user }}</a>
+</div>
+
+{# ===== MY FAVORITES ===== #}
+{% set fav_teams = teams | selectattr("team_id", "in", favs.team) | list %}
+{% set fav_games = games | selectattr("game_id", "in", favs.game) | list %}
+{% if fav_teams or fav_games %}
+<div class="fav-section">
+    <div class="section-header"><h2>❤️ My Favorites</h2></div>
+    <div class="fav-chips">
+        {% for t in fav_teams %}
+            <a href="/team/{{ t.team_id }}" class="fav-chip">👥 {{ t.team_name }}</a>
+        {% endfor %}
+        {% for g in fav_games %}
+            <a href="/game/{{ g.game_id }}" class="fav-chip">🎮 {{ g.game_name }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ===== QUICK ACCESS ===== #}
+<div class="quick-grid">
+    {% for t in tournaments %}
+    <a href="/tournament/{{ t.tournament_id }}" class="quick-card">
+        <div class="quick-icon">🏆</div>
+        <div class="quick-text">
+            <span>{{ t.name }}</span>
+            <small>🎮 {{ t.game_name }}</small>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+{# ===== POPULAR GAMES ===== #}
+<div class="section-header"><h2>🎮 Popular Games</h2></div>
+<div class="featured-games">
+    {% for g in games %}
+    <a href="/game/{{ g.game_id }}" class="featured-game">
+        {% if g.logo %}
+            <img src="{{ g.logo }}" class="featured-game-img" alt="{{ g.game_name }}">
+        {% else %}
+            <div class="featured-game-img" style="display:flex; align-items:center; justify-content:center; color:#555;">No Image</div>
+        {% endif %}
+        <h4>{{ g.game_name }}</h4>
+        <form method="POST" action="/favorite/game/{{ g.game_id }}" style="display:inline;">
+            <input type="hidden" name="next" value="/">
+            <button class="fav-btn">{{ "❤️" if g.game_id in favs.game else "🤍" }}</button>
+        </form>
+    </a>
+    {% endfor %}
+</div>
+
+{# ===== TEAMS ===== #}
+<div class="section-header">
+    <h2>👥 Teams</h2>
+    <a href="/teams">ดูทั้งหมด</a>
+</div>
+<div class="teams-row">
+    {% for team in teams %}
+    <div class="team-item" style="display:flex; flex-direction:column; align-items:center;">
+        <a href="/team/{{ team.team_id }}" style="text-decoration:none; color:white; text-align:center;">
+            {% if team.logo %}
+                <img src="data:image/png;base64,{{ team.logo }}" alt="{{ team.team_name }}">
+            {% else %}
+                <img src="/static/default-logo.png" alt="No Logo">
+            {% endif %}
+            <h4>{{ team.team_name }}</h4>
+        </a>
+        <form method="POST" action="/favorite/team/{{ team.team_id }}" style="display:inline;">
+            <input type="hidden" name="next" value="/">
+            <button class="fav-btn">{{ "❤️" if team.team_id in favs.team else "🤍" }}</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+{# ===== TOURNAMENTS ===== #}
+<div class="section-header">
+    <h2>🏆 Tournaments</h2>
+    <a href="/tournaments">ดูทั้งหมด</a>
+</div>
+<div class="tournaments-list">
+    {% for t in tournaments %}
+    <div class="tournament-row">
+        <div class="t-num">{{ loop.index }}</div>
+        <div class="t-info">
+            <h4>{{ t.name }}</h4>
+            <p>🎮 {{ t.game_name }}</p>
+        </div>
+        <div class="t-date">📅 {{ t.date }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+{# ===== SEARCH DATA (hidden — อ่านด้วย JS) ===== #}
+<div id="sd-teams"       style="display:none">{% for t in teams %}      <span data-name="{{ t.team_name }}"  data-img="{{ 'data:image/png;base64,' ~ t.logo if t.logo else '' }}" data-url="/team/{{ t.team_id }}"        data-round="1"></span>{% endfor %}</div>
+<div id="sd-players"     style="display:none">{% for p in players_all %}<span data-name="{{ p.nickname }}"   data-sub="{{ p.team_name or '' }}"                                   data-url="/player/{{ p.player_id }}"     data-round="1" {% if p.image %}data-img="data:image/jpeg;base64,{{ p.image }}"{% else %}data-icon="🕹️"{% endif %}></span>{% endfor %}</div>
+<div id="sd-games"       style="display:none">{% for g in games %}      <span data-name="{{ g.game_name }}"  data-img="{{ g.logo or '' }}"                                        data-url="/game/{{ g.game_id }}"         data-icon="🎮"></span>{% endfor %}</div>
+<div id="sd-tournaments" style="display:none">{% for t in tournaments %}<span data-name="{{ t.name }}"       data-sub="{{ t.game_name or '' }}"                                   data-url="/tournament/{{ t.tournament_id }}" data-icon="🏆"></span>{% endfor %}</div>
+
+<script>
+/* ===== SEARCH ===== */
+function loadSD(id, defaultIcon) {
+    return Array.from(document.querySelectorAll('#' + id + ' span')).map(function(el) {
+        return {
+            name:  el.dataset.name  || '',
+            sub:   el.dataset.sub   || '',
+            img:   el.dataset.img   || '',
+            url:   el.dataset.url   || '',
+            round: !!el.dataset.round,
+            icon:  el.dataset.icon  || defaultIcon
+        };
+    });
+}
+
+var SD = {
+    teams:       loadSD('sd-teams',       '👥'),
+    players:     loadSD('sd-players',     '🕹️'),
+    games:       loadSD('sd-games',       '🎮'),
+    tournaments: loadSD('sd-tournaments', '🏆')
+};
+
+var cats = [
+    { key: "teams",       label: "Teams" },
+    { key: "players",     label: "Players" },
+    { key: "games",       label: "Games" },
+    { key: "tournaments", label: "Tournaments" }
+];
+
+function thumb(item) {
+    if (item.img) {
+        return '<img src="' + item.img + '" class="s-thumb' + (item.round ? '' : ' sq') + '">';
+    }
+    return '<div class="s-ph' + (item.round ? '' : ' sq') + '">' + (item.icon || '👤') + '</div>';
+}
+
+function doSearch(q) {
+    var dd = document.getElementById('searchDropdown');
+    q = q.trim().toLowerCase();
+    if (!q) { dd.style.display = 'none'; return; }
+
+    var html = '', found = 0;
+
+    cats.forEach(function(cat) {
+        var hits = SD[cat.key].filter(function(x) {
+            return x.name.toLowerCase().indexOf(q) !== -1;
+        });
+        if (!hits.length) return;
+        found += hits.length;
+        html += '<div class="s-label">' + cat.label + '</div>';
+        hits.slice(0, 4).forEach(function(item) {
+            html += '<a href="' + item.url + '" class="s-item">'
+                  + thumb(item)
+                  + '<div class="s-info"><strong>' + item.name + '</strong>'
+                  + (item.sub ? '<small>' + item.sub + '</small>' : '')
+                  + '</div></a>';
+        });
+    });
+
+    if (!found) html = '<div class="s-empty">ไม่พบผลลัพธ์</div>';
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+}
+
+document.getElementById('searchInput').addEventListener('input',  function() { doSearch(this.value); });
+document.getElementById('searchInput').addEventListener('focus',  function() { doSearch(this.value); });
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.search-wrapper')) {
+        document.getElementById('searchDropdown').style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}

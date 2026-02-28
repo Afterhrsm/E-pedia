@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ user.username }}{% endblock %}
+
+
+
+{% block content %}
+
+{# ===== PROFILE HERO ===== #}
+<div class="profile-hero">
+    <div class="profile-avatar">👤</div>
+    <div>
+        <h1>{{ user.username }}</h1>
+        <span class="role-badge">{{ user.role }}</span>
+    </div>
+</div>
+
+{# ===== FAVORITE TEAMS ===== #}
+<div class="fav-section">
+    <div class="fav-section-title">❤️ ทีมที่ชอบ</div>
+    {% if fav_teams %}
+    <div class="fav-team-grid">
+        {% for t in fav_teams %}
+        <a href="/team/{{ t.team_id }}" class="fav-team-card">
+            {% if t.logo %}
+            <img src="data:image/png;base64,{{ t.logo }}" alt="{{ t.team_name }}">
+            {% else %}
+            <div
+                style="width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">
+                👥</div>
+            {% endif %}
+            <span>{{ t.team_name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="fav-empty">ยังไม่มีทีมที่ชอบ — กด ❤️ ที่หน้าทีมได้เลย</div>
+    {% endif %}
+</div>
+
+{# ===== FAVORITE PLAYERS ===== #}
+<div class="fav-section">
+    <div class="fav-section-title">❤️ ผู้เล่นที่ชอบ</div>
+    {% if fav_players %}
+    <div class="fav-player-grid">
+        {% for p in fav_players %}
+        <a href="/player/{{ p.player_id }}" class="fav-player-card">
+            {% if p.image %}
+            <img src="data:image/png;base64,{{ p.image }}" alt="{{ p.nickname }}">
+            {% else %}
+            <div
+                style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">
+                🕹️</div>
+            {% endif %}
+            <div class="p-info">
+                <strong>{{ p.nickname }}</strong>
+                <small>{{ p.role }} · {{ p.team_name }}</small>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="fav-empty">ยังไม่มีผู้เล่นที่ชอบ — กด ❤️ ที่หน้าทีมได้เลย</div>
+    {% endif %}
+</div>
+
+{# ===== FAVORITE GAMES ===== #}
+<div class="fav-section">
+    <div class="fav-section-title">❤️ เกมที่ชอบ</div>
+    {% if fav_games %}
+    <div class="fav-game-grid">
+        {% for g in fav_games %}
+        <a href="/game/{{ g.game_id }}" class="fav-game-card">
+            {% if g.game_logo %}
+            <img src="{{ g.game_logo }}" alt="{{ g.game_name }}">
+            {% else %}
+            <div
+                style="width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">
+                🎮</div>
+            {% endif %}
+            <span>{{ g.game_name }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="fav-empty">ยังไม่มีเกมที่ชอบ — กด ❤️ ที่หน้าเกมได้เลย</div>
+    {% endif %}
+</div>
+
+{% endblock %}

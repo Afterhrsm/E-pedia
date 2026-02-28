@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.nickname }}{% endblock %}
+
+{% block extra_style %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="player-hero">
+    {% if player.cover %}
+    <img src="{{ player.cover }}" class="player-hero-bg" alt="cover">
+    {% else %}
+    <div class="no-cover">🎮</div>
+    {% endif %}
+
+    <div class="player-hero-gradient"></div>
+
+    <div class="player-hero-content">
+        <div class="player-hero-left">
+            <h1>{{ player.nickname }}</h1>
+            <div class="player-hero-meta">
+                {% if player.role %}
+                <span class="hero-badge role">⚡ {{ player.role }}</span>
+                {% endif %}
+                {% if player.team_name %}
+                <span class="hero-badge team">🛡️ {{ player.team_name }}</span>
+                {% endif %}
+                {% if player.game_name %}
+                <span class="hero-badge game">🎮 {{ player.game_name }}</span>
+                {% endif %}
+                {% if player.nationality %}
+                <span class="hero-badge nat">🌏 {{ player.nationality }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST" action="/favorite/player/{{ player.player_id }}">
+            <input type="hidden" name="next" value="/player/{{ player.player_id }}">
+            <button type="submit" class="hero-fav-btn {{ 'active' if is_fav else '' }}">
+                {{ "❤️ ถูกใจแล้ว" if is_fav else "🤍 ถูกใจ" }}
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- BODY -->
+<div class="player-body">
+
+    <!-- LEFT: Bio + Social -->
+    <div>
+        <div class="info-card">
+            <div class="info-card-header">
+                <span>📖</span>
+                <h2>Biography</h2>
+            </div>
+            <div class="info-card-body">
+                {% if player.bio %}
+                <p class="bio-text">{{ player.bio }}</p>
+                {% else %}
+                <p class="bio-text" style="color:rgba(255,255,255,0.25);font-style:italic;">ยังไม่มีข้อมูล</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-header">
+                <span>🏆</span>
+                <h2>Achievements</h2>
+            </div>
+            <div class="info-card-body">
+                {% if player.achievements %}
+                <ul class="achievements-list">
+                    {% for achievement in player.achievements.replace('\r', '').split('\n') %}
+                    {% if achievement.strip() %}
+                    <li class="achievement-item">
+                        <span class="achievement-icon"><i class="fa-solid fa-medal"></i></span>
+                        <span>{{ achievement.strip() }}</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="bio-text" style="color:rgba(255,255,255,0.25);font-style:italic;">ยังไม่มีข้อมูล</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if player.instagram or player.youtube %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <span>🔗</span>
+                <h2>Social Media</h2>
+            </div>
+            <div class="info-card-body">
+                <div class="social-links">
+                    {% if player.instagram %}
+                    <a href="{{ player.instagram }}" target="_blank" class="social-btn instagram">
+                        <div class="social-icon"><i class="fa-brands fa-instagram"></i></div>
+                        <div>
+                            <div>Instagram</div>
+                            <div style="font-size:11px;font-weight:400;opacity:0.6;margin-top:1px;">{{ player.instagram
+                                | truncate(40) }}</div>
+                        </div>
+                        <i class="fa-solid fa-arrow-up-right-from-square"
+                            style="margin-left:auto;font-size:11px;opacity:0.5;"></i>
+                    </a>
+                    {% endif %}
+                    {% if player.youtube %}
+                    <a href="{{ player.youtube }}" target="_blank" class="social-btn youtube">
+                        <div class="social-icon"><i class="fa-brands fa-youtube"></i></div>
+                        <div>
+                            <div>YouTube</div>
+                            <div style="font-size:11px;font-weight:400;opacity:0.6;margin-top:1px;">{{ player.youtube |
+                                truncate(40) }}</div>
+                        </div>
+                        <i class="fa-solid fa-arrow-up-right-from-square"
+                            style="margin-left:auto;font-size:11px;opacity:0.5;"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT: Sidebar stats -->
+    <div>
+        <div class="info-card">
+            <div class="info-card-header">
+                <span>🃏</span>
+                <h2>Player Info</h2>
+            </div>
+            <div class="info-card-body" style="padding:8px 22px;">
+                <div class="stat-row">
+                    <span class="stat-label">Nickname</span>
+                    <span class="stat-value">{{ player.nickname }}</span>
+                </div>
+                {% if player.role %}
+                <div class="stat-row">
+                    <span class="stat-label">Role</span>
+                    <span class="stat-value" style="color:#1db954;">{{ player.role }}</span>
+                </div>
+                {% endif %}
+                {% if player.team_name %}
+                <div class="stat-row">
+                    <span class="stat-label">Team</span>
+                    <span class="stat-value">{{ player.team_name }}</span>
+                </div>
+                {% endif %}
+                {% if player.game_name %}
+                <div class="stat-row">
+                    <span class="stat-label">Game</span>
+                    <span class="stat-value">{{ player.game_name }}</span>
+                </div>
+                {% endif %}
+                {% if player.nationality %}
+                <div class="stat-row">
+                    <span class="stat-label">Nationality</span>
+                    <span class="stat-value">{{ player.nationality }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if player.image %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <span>🖼️</span>
+                <h2>Player Photo</h2>
+            </div>
+            <div class="info-card-body" style="padding:14px;">
+                <img src="data:image/jpeg;base64,{{ player.image }}" alt="{{ player.nickname }}"
+                    style="width:100%;border-radius:10px;object-fit:cover;max-height:280px;display:block;">
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

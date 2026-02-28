@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Tournaments - Esports Hub{% endblock %}
+
+
+
+{% block content %}
+
+<h1 style="margin-bottom:30px;">🏆 Tournaments</h1>
+
+<table class="tournaments-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Tournament</th>
+            <th>🎮 Game</th>
+            <th>📍 Location</th>
+            <th>📅 Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in tournaments %}
+        <tr>
+            <td class="t-index">{{ loop.index }}</td>
+            <td class="t-name">
+                <a href="/tournament/{{ t.tournament_id }}" style="color:white; text-decoration:none;">
+                    {{ t.name }} →
+                </a>
+            </td>
+            <td><span class="game-badge">{{ t.game_name }}</span></td>
+            <td>{{ t.location or "-" }}</td>
+            <td>{{ t.date or "-" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5" style="text-align:center; color:#b3b3b3; padding:40px;">
+                ยังไม่มีข้อมูล Tournament
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tournament.name }}{% endblock %}
+
+
+{% block content %}
+
+{# ===== TOURNAMENT HERO ===== #}
+<div class="tournament-hero">
+    <div style="font-size:56px;">🏆</div>
+    <div>
+        <h1>{{ tournament.name }}</h1>
+        <p>🎮 {{ tournament.game_name }}</p>
+        <p>📍 {{ tournament.location or "TBA" }}</p>
+        <p>📅 {{ tournament.date or "TBA" }}</p>
+    </div>
+</div>
+
+{# ===== MATCHES ===== #}
+{% if matches %}
+    {% set current_date = namespace(val=None) %}
+    {% for m in matches %}
+
+        {# วันที่ใหม่ #}
+        {% if m.match_date != current_date.val %}
+            {% set current_date.val = m.match_date %}
+            <div class="date-label">📅 {{ m.match_date }}</div>
+        {% endif %}
+
+        <div class="match-card">
+
+            {# เลข match #}
+            <div class="match-num">MATCH<br>{{ m.match_number or loop.index }}</div>
+
+            {# ทีม 1 #}
+            <div class="team-side">
+                {% if m.team1_logo %}
+                    <img src="data:image/png;base64,{{ m.team1_logo }}" alt="">
+                {% endif %}
+                <h4>{{ m.team1_short_name or m.team1_name }}</h4>
+            </div>
+
+            {# ===== CENTER: score หรือ เวลา ===== #}
+            <div class="center-block">
+                {% if m.team1_score is not none and m.team2_score is not none %}
+                    {# มีสกอร์แล้ว — แสดง scoreboard #}
+                    <div class="scoreboard">
+                        <span class="score-num {% if m.team1_score > m.team2_score %}winner{% endif %}">
+                            {{ m.team1_score }}
+                        </span>
+                        <div class="score-divider"></div>
+                        <span class="score-num {% if m.team2_score > m.team1_score %}winner{% endif %}">
+                            {{ m.team2_score }}
+                        </span>
+                    </div>
+                {% else %}
+                    {# ยังไม่มีสกอร์ — แสดงเวลา #}
+                    <span class="match-time">
+                        {% if m.match_time %}
+                            {{ '%02d:%02d' | format(m.match_time.seconds // 3600, (m.match_time.seconds % 3600) // 60) }}
+                        {% else %}
+                            TBA
+                        {% endif %}
+                    </span>
+                    <span class="vs-label">VS</span>
+                {% endif %}
+            </div>
+
+            {# ทีม 2 #}
+            <div class="team-side right">
+                <h4>{{ m.team2_short_name or m.team2_name }}</h4>
+                {% if m.team2_logo %}
+                    <img src="data:image/png;base64,{{ m.team2_logo }}" alt="">
+                {% endif %}
+            </div>
+
+            {# ===== VOTE STRIP ===== #}
+            <div class="vote-strip">
+                <form method="POST" action="/vote/{{ m.match_id }}/{{ m.team1_id }}" style="display:inline;">
+                    <button type="submit" class="vote-pill {% if user_votes.get(m.match_id) == m.team1_id %}voted{% endif %}">
+                        {{ m.team1_short_name or m.team1_name }}
+                        <span class="v-cnt">{{ vote_counts.get(m.match_id, {}).get(m.team1_id, 0) }}</span>
+                    </button>
+                </form>
+
+                <form method="POST" action="/vote/{{ m.match_id }}/{{ m.team2_id }}" style="display:inline;">
+                    <button type="submit" class="vote-pill {% if user_votes.get(m.match_id) == m.team2_id %}voted{% endif %}">
+                        {{ m.team2_short_name or m.team2_name }}
+                        <span class="v-cnt">{{ vote_counts.get(m.match_id, {}).get(m.team2_id, 0) }}</span>
+                    </button>
+                </form>
+
+                {% if m.stream_url %}
+                    <a href="{{ m.stream_url }}" target="_blank" class="stream-link">▶ Live</a>
+                {% endif %}
+            </div>
+
+        </div>
+    {% endfor %}
+
+{% else %}
+    <div class="no-matches">ยังไม่มีตารางการแข่งขัน</div>
+{% endif %}
+
+{% endblock %}

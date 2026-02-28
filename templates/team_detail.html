@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.team_name }} - Esports Hub{% endblock %}
+
+{% block content %}
+
+{# ── กำหนดสีจาก DB, fallback เป็น #ff3c1e ── #}
+{% set brand = team.brand_color if team.brand_color else '#ff3c1e' %}
+
+{# ── inject CSS variables inline to prevent auto-formatter breaking it ── #}
+<div
+  style="display: contents; --brand: {{ brand | trim }}; --brand-44: {{ brand | trim }}44; --brand-1a: {{ brand | trim }}1a;">
+
+  {# ─── HERO BANNER ─── #}
+  <div class="th-hero">
+    <div class="th-hero-bg"></div>
+    <div class="th-hero-noise"></div>
+    <div class="th-hero-inner">
+      <a href="javascript:history.back()" class="back-btn">← กลับ</a>
+      <div class="th-identity">
+        <div class="th-logo-wrap">
+          {% if team.logo %}
+          <img src="data:image/png;base64,{{ team.logo }}" class="th-logo" alt="{{ team.team_name }}">
+          {% else %}
+          <div class="th-logo-ph">?</div>
+          {% endif %}
+          <div class="th-logo-ring"></div>
+        </div>
+        <div class="th-meta">
+          <div class="th-tag">ESPORTS TEAM</div>
+          <h1 class="th-name">{{ team.team_name }}</h1>
+          <p class="th-desc">{{ team.description }}</p>
+          <div class="th-actions">
+            <form method="POST" action="/favorite/team/{{ team.team_id }}">
+              <input type="hidden" name="next" value="/team/{{ team.team_id }}">
+              <button class="fav-btn {{ 'active' if is_fav_team else '' }}">
+                {% if is_fav_team %}❤️ ถูกใจแล้ว{% else %}🤍 ถูกใจทีม{% endif %}
+              </button>
+            </form>
+            <div class="th-game-pills">
+              {% for g in games %}
+              <span class="th-game-pill">
+                {% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}
+                {{ g.game_name }}
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ─── TOURNAMENTS ─── #}
+  {% if tournaments %}
+  <section class="td-section">
+    <div class="td-section-head"><span class="td-section-icon">🏆</span>
+      <h2>Tournaments</h2>
+    </div>
+    <div class="team-tournaments">
+      {% for t in tournaments %}
+      <a href="/tournament/{{ t.tournament_id }}" class="team-t-row">
+        <div class="tt-icon">
+          {% if t.game_logo %}<img src="{{ t.game_logo }}"
+            style="width:36px;height:36px;object-fit:contain;border-radius:6px;">
+          {% else %}🏆{% endif %}
+        </div>
+        <div class="tt-info">
+          <h4>{{ t.name }}</h4>
+          <p>🎮 {{ t.game_name }}{% if t.location %} · 📍 {{ t.location }}{% endif %}{% if t.date %} · 📅 {{ t.date }}{%
+            endif %}</p>
+        </div>
+        {% if t.prize_pool %}<span class="tt-prize">💰 ${{ "{:,}".format(t.prize_pool) }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# ─── GAMES ─── #}
+  <section class="td-section">
+    <div class="td-section-head"><span class="td-section-icon">🎮</span>
+      <h2>Games Played</h2>
+    </div>
+    <div class="td-games-grid">
+      {% for g in games %}
+      <a href="/game/{{ g.game_id }}" class="td-game-card">
+        <div class="td-game-img-wrap">
+          {% if g.logo %}<img src="{{ g.logo }}" alt="{{ g.game_name }}">
+          {% else %}<div class="td-game-noimg">🎮</div>{% endif %}
+          <div class="td-game-overlay"></div>
+        </div>
+        <div class="td-game-label">
+          <span>{{ g.game_name }}</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 7h12M7 1l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </div>
+      </a>
+      {% else %}
+      <p style="color:#555;">ยังไม่มีข้อมูลเกมที่ลงแข่ง</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="td-divider"></div>
+
+  {# ─── PLAYERS ─── #}
+  <section class="td-section">
+    <div class="td-section-head"><span class="td-section-icon">👥</span>
+      <h2>Players</h2>
+    </div>
+
+    <div class="game-tabs">
+      {% for g in games %}
+      <div class="game-tab {% if loop.first %}active{% endif %}" data-game="{{ g.game_id }}"
+        onclick="switchGameTab('{{ g.game_id }}', this)">
+        {% if g.logo %}<img src="{{ g.logo }}" alt="">{% endif %}
+        {{ g.game_name }}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% for g in games %}
+    {% set game_players = players | selectattr("game_id", "equalto", g.game_id) | list %}
+    <div class="game-players-section {% if loop.first %}active{% endif %}" id="game-players-{{ g.game_id }}">
+      {% if game_players %}
+      <div class="carousel-wrapper">
+        <button class="carousel-btn prev" id="prev-{{ g.game_id }}"
+          onclick="slideCarousel('{{ g.game_id }}', -1)">‹</button>
+        <div class="carousel-track-container">
+          <div class="carousel-track" id="track-{{ g.game_id }}">
+            {% for p in game_players %}
+            <div class="player-slide">
+              <form method="POST" action="/favorite/player/{{ p.player_id }}"
+                style="position:absolute;top:10px;right:10px;z-index:20;">
+                <input type="hidden" name="next" value="/team/{{ team.team_id }}">
+                <button class="fav-btn-sm" type="submit">{{ "❤️" if p.player_id in fav_players else "🤍" }}</button>
+              </form>
+              <div class="flip-inner">
+                <div class="flip-front">
+                  {% if p.image %}<img src="data:image/png;base64,{{ p.image }}" alt="{{ p.nickname }}">
+                  {% else %}<div class="no-photo">🕹️</div>{% endif %}
+                  <div class="card-info">
+                    <h3>{{ p.nickname }}</h3>
+                    <p class="role">{{ p.role }}</p>
+                  </div>
+                </div>
+                <a href="{{ url_for('player_detail', id=p.player_id) }}" class="flip-back">
+                  {% if p.image %}<img src="data:image/png;base64,{{ p.image }}" class="back-avatar"
+                    alt="{{ p.nickname }}">
+                  {% else %}<div class="back-no-avatar">🕹️</div>{% endif %}
+                  <h3>{{ p.nickname }}</h3>
+                  <div class="back-role">{{ p.role }}</div>
+                  <div class="back-game">{{ p.game_name }}</div>
+                  <div class="back-hint">คลิกเพื่อดูโปรไฟล์ →</div>
+                </a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <button class="carousel-btn next" id="next-{{ g.game_id }}"
+          onclick="slideCarousel('{{ g.game_id }}', 1)">›</button>
+        <div class="carousel-dots" id="dots-{{ g.game_id }}"></div>
+      </div>
+      {% else %}
+      <p style="color:#555; padding:20px 0;">ยังไม่มีผู้เล่นในเกมนี้</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <script>
+    const CARD_W = 220 + 16;
+    const VISIBLE = Math.max(1, Math.floor((window.innerWidth - 340) / CARD_W));
+    const state = {};
+
+    function initCarousel(gameId) {
+      var track = document.getElementById('track-' + gameId);
+      if (!track) return;
+      state[gameId] = { index: 0, total: track.children.length };
+      buildDots(gameId);
+      updateCarousel(gameId);
+    }
+    function buildDots(gameId) {
+      var pages = Math.max(1, Math.ceil(state[gameId].total / VISIBLE));
+      var container = document.getElementById('dots-' + gameId);
+      if (!container) return;
+      container.innerHTML = '';
+      for (var i = 0; i < pages; i++) {
+        var d = document.createElement('div');
+        d.className = 'dot' + (i === 0 ? ' active' : '');
+        d.onclick = (function (idx) {
+          return function () { state[gameId].index = idx * VISIBLE; updateCarousel(gameId); };
+        })(i);
+        container.appendChild(d);
+      }
+    }
+    function updateCarousel(gameId) {
+      var s = state[gameId];
+      var track = document.getElementById('track-' + gameId);
+      if (!track) return;
+      track.style.transform = 'translateX(-' + (s.index * CARD_W) + 'px)';
+      document.getElementById('prev-' + gameId).disabled = s.index === 0;
+      document.getElementById('next-' + gameId).disabled = s.index + VISIBLE >= s.total;
+      var page = Math.floor(s.index / VISIBLE);
+      document.querySelectorAll('#dots-' + gameId + ' .dot').forEach(function (d, i) {
+        d.classList.toggle('active', i === page);
+      });
+    }
+    function slideCarousel(gameId, dir) {
+      var s = state[gameId];
+      s.index = Math.max(0, Math.min(s.index + dir * VISIBLE, s.total - VISIBLE));
+      updateCarousel(gameId);
+    }
+    function switchGameTab(gameId, el) {
+      document.querySelectorAll('.game-players-section').forEach(function (s) { s.classList.remove('active'); });
+      document.querySelectorAll('.game-tab').forEach(function (t) { t.classList.remove('active'); });
+      document.getElementById('game-players-' + gameId).classList.add('active');
+      el.classList.add('active');
+      if (!state[gameId]) initCarousel(gameId);
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      var first = document.querySelector('.game-players-section.active');
+      if (first) initCarousel(parseInt(first.id.replace('game-players-', '')));
+    });
+  </script>
+</div>
+{% endblock %}

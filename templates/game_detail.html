@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}{{ game.game_name }}{% endblock %}
+
+
+{% block content %}
+
+{# ===== GAME HEADER ===== #}
+<div class="game-detail">
+    {% if game.logo %}
+        <img src="{{ game.logo }}" class="game-logo" alt="{{ game.game_name }}">
+    {% endif %}
+    <h1>{{ game.game_name }}</h1>
+    <form method="POST" action="/favorite/game/{{ game.game_id }}">
+        <input type="hidden" name="next" value="/game/{{ game.game_id }}">
+        <button class="fav-btn {{ 'active' if is_fav else '' }}">
+            {{ "❤️ ถูกใจแล้ว" if is_fav else "🤍 ถูกใจ" }}
+        </button>
+    </form>
+    <p class="game-description">{{ game.description }}</p>
+    {% if game.video %}
+    <div class="video-container">
+        <iframe src="{{ game.video }}" frameborder="0" allowfullscreen></iframe>
+    </div>
+    {% endif %}
+</div>
+
+{# ===== STAT BOXES ===== #}
+{# นับ unique team_id และ player_id #}
+{% set unique_teams = [] %}
+{% for t in game_teams %}
+    {% if t.team_id not in unique_teams %}{% set _ = unique_teams.append(t.team_id) %}{% endif %}
+{% endfor %}
+{% set unique_players = [] %}
+{% for p in game_players %}
+    {% if p.player_id not in unique_players %}{% set _ = unique_players.append(p.player_id) %}{% endif %}
+{% endfor %}
+
+<div class="stat-boxes">
+    <div class="stat-box">
+        <span class="stat-value">{{ game_tournaments | length }}</span>
+        <div class="stat-label">🏆 Tournaments</div>
+    </div>
+    <div class="stat-box">
+        <span class="stat-value">{{ unique_teams | length }}</span>
+        <div class="stat-label">👥 Teams</div>
+    </div>
+    <div class="stat-box">
+        <span class="stat-value">{{ unique_players | length }}</span>
+        <div class="stat-label">🕹️ Players</div>
+    </div>
+    <div class="stat-box">
+        <span class="stat-value">
+            {% if total_prize and total_prize > 0 %}${{ "{:,}".format(total_prize) }}
+            {% else %}—{% endif %}
+        </span>
+        <div class="stat-label">💰 Total Prize Pool</div>
+    </div>
+</div>
+
+{# ===== LP GRID ===== #}
+<div class="lp-grid">
+
+    {# TOURNAMENTS #}
+    <div class="lp-section lp-section-wide">
+        <div class="lp-header"><span>🏆</span><h3>Tournaments</h3></div>
+        <div class="lp-body">
+            {% if game_tournaments %}
+                {% for t in game_tournaments %}
+                <a href="/tournament/{{ t.tournament_id }}" class="t-row">
+                    <span class="t-name">{{ t.name }}</span>
+                    <span class="t-date">📅 {{ t.date or 'TBA' }}</span>
+                    <span class="t-date">📍 {{ t.location or 'TBA' }}</span>
+                    {% if t.prize_pool %}<span class="t-prize">💰 ${{ "{:,}".format(t.prize_pool) }}</span>{% endif %}
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">ยังไม่มีข้อมูล Tournament</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# RECENT MATCHES #}
+    <div class="lp-section lp-section-wide">
+        <div class="lp-header"><span>⚔️</span><h3>Recent Matches</h3></div>
+        <div class="lp-body">
+            {% if game_matches %}
+                {% for m in game_matches %}
+                <div class="match-row-lp">
+                    <div class="mr-date">
+                        {{ m.match_date or 'TBA' }}<br>
+                        <span style="color:#666;">{% if m.match_time %}{{ '%02d:%02d' | format(m.match_time.seconds // 3600, (m.match_time.seconds % 3600) // 60) }}{% endif %}</span>
+                    </div>
+                    <div class="mr-team">{{ m.team1_name }}</div>
+                    <div class="mr-vs">VS</div>
+                    <div class="mr-team right">{{ m.team2_name }}</div>
+                    <div style="font-size:11px; color:#555; flex-shrink:0;">{{ m.tournament_name }}</div>
+                    {% if m.stream_url %}<a href="{{ m.stream_url }}" target="_blank" class="mr-stream">▶ Live</a>{% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">ยังไม่มีข้อมูล Match</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ===== TEAMS & PLAYERS แยกตาม Tournament ===== #}
+    <div class="lp-section lp-section-wide">
+        <div class="lp-header"><span>👥</span><h3>Teams & Players</h3></div>
+        <div class="lp-body">
+        {% if game_teams %}
+
+            {# วน loop ทุก tournament ที่ทีมเข้าร่วม (ดึงจาก game_teams โดยตรง) #}
+            {% set seen_tids = namespace(v=[]) %}
+
+            {% for team in game_teams %}
+                {# เจอ tournament ใหม่ = เริ่ม block ใหม่ #}
+                {% if team.tournament_id not in seen_tids.v %}
+                    {% set _ = seen_tids.v.append(team.tournament_id) %}
+
+                    {# นับทีมใน tournament นี้ #}
+                    {% set count_t = namespace(n=0) %}
+                    {% for tt in game_teams %}
+                        {% if tt.tournament_id == team.tournament_id %}{% set count_t.n = count_t.n + 1 %}{% endif %}
+                    {% endfor %}
+
+                    <div class="t-block-header">
+                        {% if team.tournament_id == 0 %}
+                            <span>📋</span>
+                        {% else %}
+                            <span>🏆</span>
+                        {% endif %}
+                        <span class="t-block-name">{{ team.tournament_name }}</span>
+                        <span class="t-block-count">{{ count_t.n }} teams</span>
+                    </div>
+                {% endif %}
+
+                {# หา players ของทีมนี้ใน tournament นี้ #}
+                {% set tplayers = [] %}
+                {% for p in game_players %}
+                    {% if p.team_id == team.team_id and p.tournament_id == team.tournament_id %}
+                        {% set _ = tplayers.append(p) %}
+                    {% endif %}
+                {% endfor %}
+
+                <div class="team-row-wrap">
+                    {# Team row — คลิก expand ผู้เล่น #}
+                    <div class="team-row-lp" onclick="toggleTeam('px-{{ team.tournament_id }}-{{ team.team_id }}', this)">
+                        {% if team.logo %}
+                            <img src="data:image/png;base64,{{ team.logo }}" alt="{{ team.team_name }}">
+                        {% else %}
+                            <div class="team-ph">👥</div>
+                        {% endif %}
+                        <span class="tr-name">{{ team.team_name }}</span>
+                        <span class="tr-count">{{ team.player_count }} players</span>
+                        <a href="/team/{{ team.team_id }}" class="tr-link" onclick="event.stopPropagation()">ดูทีม →</a>
+                        {% if tplayers %}
+                        <span class="expand-arrow">▼</span>
+                        {% endif %}
+                    </div>
+
+                    {# Players expand #}
+                    {% if tplayers %}
+                    <div class="players-expand" id="px-{{ team.tournament_id }}-{{ team.team_id }}">
+                        {% for p in tplayers %}
+                        <a href="/player/{{ p.player_id }}" class="player-row-lp">
+                            {% if p.image %}
+                                <img src="data:image/png;base64,{{ p.image }}" alt="{{ p.nickname }}">
+                            {% else %}
+                                <div class="p-avatar">🕹️</div>
+                            {% endif %}
+                            <span class="pr-nick">{{ p.nickname }}</span>
+                            {% if p.role %}<span class="pr-role">{{ p.role }}</span>{% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+            <div class="empty-state">ยังไม่มีข้อมูลทีม</div>
+        {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleTeam(id, row) {
+    var panel = document.getElementById(id);
+    if (!panel) return;
+    var isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    row.classList.toggle('open', !isOpen);
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,868 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel{% endblock %}
+
+{% block sidebar_title %}
+<h2
+    style="font-size:13px;font-weight:700;letter-spacing:0.08em;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:8px;">
+    ⚙️ Admin Panel</h2>
+{% endblock %}
+
+{% block sidebar_links %}
+<a href="/admin?tab=dashboard" {% if tab=='dashboard' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif
+    %}>📊 Dashboard</a>
+<a href="/admin?tab=users" {% if tab=='users' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif %}>👤
+    Users</a>
+<a href="/admin?tab=games" {% if tab=='games' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif %}>🎮
+    Games</a>
+<a href="/admin?tab=teams" {% if tab=='teams' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif %}>👥
+    Teams</a>
+<a href="/admin?tab=players" {% if tab=='players' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif
+    %}>🕹️ Players</a>
+<a href="/admin?tab=tournaments" {% if tab=='tournaments' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {%
+    endif %}>🏆 Tournaments</a>
+<a href="/admin?tab=scores" {% if tab=='scores' %}style="color:#1db954;background:rgba(29,185,84,0.1);" {% endif %}>⚽
+    Scores</a>
+<hr style="border-color:rgba(255,255,255,0.07);margin:8px 0;">
+<a href="/">🏠 Back to Site</a>
+<a href="/logout">🚪 Logout</a>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>
+            {% if tab == 'dashboard' %}📊 Dashboard
+            {% elif tab == 'users' %}👤 Users
+            {% elif tab == 'games' %}🎮 Games
+            {% elif tab == 'teams' %}👥 Teams
+            {% elif tab == 'players' %}🕹️ Players
+            {% elif tab == 'tournaments' %}🏆 Tournaments
+            {% elif tab == 'scores' %}⚽ Scores
+            {% else %}Admin Panel{% endif %}
+        </h1>
+        <div class="breadcrumb">Admin / {{ tab | capitalize }}</div>
+    </div>
+</div>
+
+{% set all_roles =
+['Top','Jungle','Mid','Bot','Support','IGL','Rifler','AWPer','Entry','Lurker','Duelist','ADL','Attacker','COACH','DSL','Bomber','Rusher','Manager','Substitute','EXP
+Lane','Gold Lane','Initiator','Duelist','Flex','Controller','Sentinel','Analysis'] %}
+
+<!-- DASHBOARD -->
+{% if tab == "dashboard" %}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon">👤</div>
+        <div class="stat-label">Users</div>
+        <div class="stat-value">{{ data.users }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🎮</div>
+        <div class="stat-label">Games</div>
+        <div class="stat-value">{{ data.games }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Teams</div>
+        <div class="stat-value">{{ data.teams }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🕹️</div>
+        <div class="stat-label">Players</div>
+        <div class="stat-value">{{ data.players }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-label">Tournaments</div>
+        <div class="stat-value">{{ data.tournaments }}</div>
+    </div>
+</div>
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Quick Navigation</h2>
+    </div>
+    <div class="section-card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        {% for label, tab_name, icon in
+        [('Users','users','👤'),('Games','games','🎮'),('Teams','teams','👥'),('Players','players','🕹️'),('Tournaments','tournaments','🏆'),('Scores','scores','⚽')]
+        %}
+        <a href="/admin?tab={{ tab_name }}"
+            style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;text-decoration:none;color:rgba(255,255,255,0.75);font-size:13.5px;font-weight:500;">
+            <span style="font-size:18px;">{{ icon }}</span>{{ label }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- USERS -->
+{% if tab == "users" %}
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>All Users</h2>
+            <span class="record-count">{{ data.users_list | length }} records</span>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Users..."
+            onkeyup="filterTable(this, 'usersTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="data-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th style="width:40px;" class="sortable" onclick="sortTable('usersTable', 0)">#</th>
+                    <th class="sortable" onclick="sortTable('usersTable', 1)">Username</th>
+                    <th class="sortable" onclick="sortTable('usersTable', 2)">Role</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in data.users_list %}
+                <tr>
+                    <td class="id-col">{{ u.user_id }}</td>
+                    <td style="font-weight:500;">{{ u.username }}</td>
+                    <td><span class="badge {{ 'admin' if u.role == 'admin' else '' }}">{{ u.role }}</span></td>
+                    <td>
+                        <div class="action-group"><a href="/admin/delete_user/{{ u.user_id }}" class="btn-delete"
+                                onclick="return confirm('ยืนยันลบ user นี้?')">Delete</a></div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- GAMES -->
+<!-- GAMES -->
+{% if tab == "games" %}
+<!-- Add Game Modal -->
+<div id="addGameModal" class="admin-modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('addGameModal')">&times;</span>
+        <h2>Add Game</h2>
+        <form method="POST" action="/admin/add_game" class="add-form"
+            style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+                <label>Game Name *</label>
+                <input name="name" placeholder="Game Name" required>
+            </div>
+            <div class="form-row">
+                <label>Genre</label>
+                <select name="genre">
+                    <option value="">-- Genre --</option>
+                    <option value="MOBA">⚔️ MOBA</option>
+                    <option value="FPS">🔫 FPS</option>
+                    <option value="Battle Royale">🪂 Battle Royale</option>
+                    <option value="RTS">🏰 RTS</option>
+                    <option value="Sports">⚽ Sports</option>
+                    <option value="Fighting">🥊 Fighting</option>
+                    <option value="Other">🕹️ Other</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Description</label>
+                <input name="desc" placeholder="Description">
+            </div>
+            <button type="submit" class="btn-add" style="margin-top:10px;">+ Add Game</button>
+        </form>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>Games</h2>
+            <span class="record-count">{{ data.games_list | length }} records</span>
+            <button class="btn-add" onclick="openModal('addGameModal')" style="padding: 4px 12px; font-size: 12px;">+
+                Add New</button>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Games..."
+            onkeyup="filterTable(this, 'gamesTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="data-table" id="gamesTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('gamesTable', 0)">#</th>
+                    <th class="sortable" onclick="sortTable('gamesTable', 1)">Name</th>
+                    <th class="sortable" onclick="sortTable('gamesTable', 2)">Genre</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in data.games_list %}
+                <tr>
+                    <td class="id-col">{{ g.game_id }}</td>
+                    <td style="font-weight:500;">{{ g.game_name }}</td>
+                    <td>{% if g.genre %}<span class="badge">{{ g.genre }}</span>{% else %}<span
+                            style="color:rgba(255,255,255,0.2);">—</span>{% endif %}</td>
+                    <td>
+                        <div class="action-group"><a href="/admin/delete_game/{{ g.game_id }}" class="btn-delete"
+                                onclick="return confirm('ยืนยันลบเกมนี้?')">Delete</a></div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- TEAMS -->
+{% if tab == "teams" %}
+<!-- Add Team Modal -->
+<div id="addTeamModal" class="admin-modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('addTeamModal')">&times;</span>
+        <h2>Add Team</h2>
+        <form method="POST" action="/admin/add_team" enctype="multipart/form-data"
+            style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+                <label>Team Name *</label>
+                <input name="name" placeholder="e.g. Team Liquid" required>
+            </div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>Short Name</label>
+                    <input name="short_name" placeholder="e.g. TL" maxlength="20">
+                </div>
+                <div>
+                    <label>Founded Year</label>
+                    <input name="founded_year" type="number" placeholder="e.g. 2015" min="1900" max="2100">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>Tournament</label>
+                <select name="tournament_id">
+                    <option value="">-- Tournament --</option>
+                    {% for t in data.tournaments_list %}<option value="{{ t.tournament_id }}">{{ t.name }}</option>{%
+                    endfor %}
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Description</label>
+                <input name="description" placeholder="Team description (optional)">
+            </div>
+            <div class="form-row">
+                <label>Logo</label>
+                <input type="file" name="logo" accept="image/*">
+            </div>
+            <button type="submit" class="btn-add" style="margin-top:10px;">+ Add Team</button>
+        </form>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>Teams</h2>
+            <span class="record-count">{{ data.teams_list | length }} records</span>
+            <button class="btn-add" onclick="openModal('addTeamModal')" style="padding: 4px 12px; font-size: 12px;">+
+                Add New</button>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Teams..."
+            onkeyup="filterTable(this, 'teamsTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="data-table" id="teamsTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('teamsTable', 0)">#</th>
+                    <th class="sortable" onclick="sortTable('teamsTable', 1)">Name</th>
+                    <th class="sortable" onclick="sortTable('teamsTable', 2)">Short</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in data.teams_list %}
+                <tr>
+                    <td class="id-col">{{ t.team_id }}</td>
+                    <td style="font-weight:500;">{{ t.team_name }}</td>
+                    <td>{% if t.short_name %}<span class="badge">{{ t.short_name }}</span>{% else %}<span
+                            style="color:rgba(255,255,255,0.2);">—</span>{% endif %}</td>
+                    <td>
+                        <div class="action-group">
+                            <button class="btn-edit" data-id="{{ t.team_id }}" data-name="{{ t.team_name }}"
+                                data-short="{{ t.short_name or '' }}" data-year="{{ t.founded_year or '' }}"
+                                data-desc="{{ t.description or '' }}" data-tourney="{{ t.tournament_id or '' }}"
+                                onclick="openEditTeam(this)">Edit</button>
+                            <a href="/admin/delete_team/{{ t.team_id }}" class="btn-delete"
+                                onclick="return confirm('ยืนยันลบทีมนี้?')">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- PLAYERS -->
+{% if tab == "players" %}
+<!-- Add Player Modal -->
+<div id="addPlayerModal" class="admin-modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('addPlayerModal')">&times;</span>
+        <h2>Add Player</h2>
+        <form method="POST" action="/admin/add_player" enctype="multipart/form-data"
+            style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+                <label>Nickname *</label>
+                <input name="nickname" placeholder="e.g. s1mple" required>
+            </div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>Role</label>
+                    <select name="role">
+                        <option value="">-- Role --</option>
+                        {% for r in all_roles %}<option>{{ r }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Nationality</label>
+                    <input name="nationality" placeholder="e.g. TH" maxlength="10" value="TH">
+                </div>
+            </div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>Team</label>
+                    <select name="team_id">
+                        <option value="">-- Team --</option>
+                        {% for t in data.teams_list %}<option value="{{ t.team_id }}">{{ t.team_name }}</option>{%
+                        endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Game</label>
+                    <select name="game_id">
+                        <option value="">-- Game --</option>
+                        {% for g in data.games_list %}<option value="{{ g.game_id }}">{{ g.game_name }}</option>{%
+                        endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>Instagram URL</label>
+                    <input name="instagram" placeholder="https://instagram.com/...">
+                </div>
+                <div>
+                    <label>YouTube URL</label>
+                    <input name="youtube" placeholder="https://youtube.com/...">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>Cover Image URL</label>
+                <input name="cover_image" placeholder="https://...">
+            </div>
+            <div class="form-row">
+                <label>Bio</label>
+                <input name="bio" placeholder="Player bio (optional)">
+            </div>
+            <div class="form-row">
+                <label>Achievements</label>
+                <input name="achievements" placeholder="e.g. VCT 2023 Pacific MVP">
+            </div>
+            <div class="form-row">
+                <label>Photo</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <button type="submit" class="btn-add" style="margin-top:10px;">+ Add Player</button>
+        </form>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>Players</h2>
+            <span class="record-count">{{ data.players_list | length }} records</span>
+            <button class="btn-add" onclick="openModal('addPlayerModal')" style="padding: 4px 12px; font-size: 12px;">+
+                Add New</button>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Players..."
+            onkeyup="filterTable(this, 'playersTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="data-table" id="playersTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('playersTable', 0)">#</th>
+                    <th class="sortable" onclick="sortTable('playersTable', 1)">Nickname</th>
+                    <th class="sortable" onclick="sortTable('playersTable', 2)">Role</th>
+                    <th class="sortable" onclick="sortTable('playersTable', 3)">Team</th>
+                    <th class="sortable" onclick="sortTable('playersTable', 4)">Game</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in data.players_list %}
+                <tr>
+                    <td class="id-col">{{ p.player_id }}</td>
+                    <td style="font-weight:500;">{{ p.nickname }}</td>
+                    <td>{% if p.role %}<span class="badge role">{{ p.role }}</span>{% else %}<span
+                            style="color:rgba(255,255,255,0.2);">—</span>{% endif %}</td>
+                    <td>{{ p.team_name or '—' }}</td>
+                    <td>{{ p.game_name or '—' }}</td>
+                    <td>
+                        <div class="action-group">
+                            <button class="btn-edit" data-id="{{ p.player_id }}" data-nick="{{ p.nickname }}"
+                                data-role="{{ p.role or '' }}" data-team="{{ p.team_id or '' }}"
+                                data-game="{{ p.game_id or '' }}" data-bio="{{ p.bio or '' }}"
+                                data-ig="{{ p.instagram or '' }}" data-yt="{{ p.youtube or '' }}"
+                                data-cover="{{ p.cover_image or '' }}" data-nat="{{ p.nationality or 'TH' }}"
+                                data-achievements="{{ p.achievements or '' }}"
+                                onclick="openEditPlayer(this)">Edit</button>
+                            <a href="/admin/delete_player/{{ p.player_id }}" class="btn-delete"
+                                onclick="return confirm('ยืนยันลบผู้เล่นนี้?')">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- TOURNAMENTS -->
+<!-- TOURNAMENTS -->
+{% if tab == "tournaments" %}
+<!-- Add Tournament Modal -->
+<div id="addTournamentModal" class="admin-modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('addTournamentModal')">&times;</span>
+        <h2>Add Tournament</h2>
+        <form method="POST" action="/admin/add_tournament" class="add-form"
+            style="display:flex; flex-direction:column; gap:12px;">
+            <div class="form-row">
+                <label>Tournament Name *</label>
+                <input name="name" placeholder="Tournament Name" required>
+            </div>
+            <div class="form-row">
+                <label>Game *</label>
+                <select name="game_id" required>
+                    <option value="">-- Game --</option>
+                    {% for g in data.games_list %}<option value="{{ g.game_id }}">{{ g.game_name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label>Location</label>
+                    <input name="location" placeholder="Location">
+                </div>
+                <div>
+                    <label>Date</label>
+                    <input name="date" type="date">
+                </div>
+            </div>
+            <button type="submit" class="btn-add" style="margin-top:10px;">+ Add Tournament</button>
+        </form>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>Tournaments</h2>
+            <span class="record-count">{{ data.tournaments_list | length }} records</span>
+            <button class="btn-add" onclick="openModal('addTournamentModal')"
+                style="padding: 4px 12px; font-size: 12px;">+ Add New</button>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Tournaments..."
+            onkeyup="filterTable(this, 'tournamentsTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="data-table" id="tournamentsTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('tournamentsTable', 0)">#</th>
+                    <th class="sortable" onclick="sortTable('tournamentsTable', 1)">Name</th>
+                    <th class="sortable" onclick="sortTable('tournamentsTable', 2)">Game</th>
+                    <th class="sortable" onclick="sortTable('tournamentsTable', 3)">Location</th>
+                    <th class="sortable" onclick="sortTable('tournamentsTable', 4)">Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in data.tournaments_list %}
+                <tr>
+                    <td class="id-col">{{ t.tournament_id }}</td>
+                    <td style="font-weight:500;">{{ t.name }}</td>
+                    <td><span class="badge">{{ t.game_name }}</span></td>
+                    <td>{{ t.location or '—' }}</td>
+                    <td style="font-size:12.5px;color:rgba(255,255,255,0.5);">{{ t.date or '—' }}</td>
+                    <td>
+                        <div class="action-group"><a href="/admin/delete_tournament/{{ t.tournament_id }}"
+                                class="btn-delete" onclick="return confirm('ยืนยันลบ tournament นี้?')">Delete</a></div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>Add Match</h2>
+    </div>
+    <div class="section-card-body">
+        <form method="POST" action="/admin/add_match" class="add-form">
+            <select name="tournament_id" required>
+                <option value="">-- Tournament --</option>
+                {% for t in data.tournaments_list %}<option value="{{ t.tournament_id }}">{{ t.name }}</option>{% endfor
+                %}
+            </select>
+            <select name="team1_id" required>
+                <option value="">-- Team 1 --</option>
+                {% for t in data.teams_list %}<option value="{{ t.team_id }}">{{ t.team_name }}</option>{% endfor %}
+            </select>
+            <span style="color:rgba(255,255,255,0.3);font-size:12px;font-weight:700;">VS</span>
+            <select name="team2_id" required>
+                <option value="">-- Team 2 --</option>
+                {% for t in data.teams_list %}<option value="{{ t.team_id }}">{{ t.team_name }}</option>{% endfor %}
+            </select>
+            <input name="match_date" type="date">
+            <input name="match_time" type="time">
+            <button type="submit" class="btn-add">+ Add Match</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- SCORES -->
+{% if tab == "scores" %}
+<div class="section-card">
+    <div class="section-card-header">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <h2>Update Scores</h2>
+            <span class="record-count">{{ data.matches_list | length }} matches</span>
+        </div>
+        <input type="text" class="search-bar" placeholder="🔍 Search Scores..."
+            onkeyup="filterTable(this, 'scoresTable')">
+    </div>
+    <div class="section-card-body" style="padding:0;">
+        <table class="score-table" id="scoresTable">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('scoresTable', 0)">Tournament</th>
+                    <th class="sortable" onclick="sortTable('scoresTable', 1)">Date</th>
+                    <th class="sortable" onclick="sortTable('scoresTable', 2)">Time</th>
+                    <th colspan="3" style="text-align:center;">Score</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in data.matches_list %}
+                <tr id="row-{{ m.match_id }}">
+                    <td style="color:rgba(255,255,255,0.4);font-size:12px;">{{ m.tournament_name }}</td>
+                    <td style="font-size:12.5px;">{{ m.match_date or '—' }}</td>
+                    <td style="font-size:12.5px;color:rgba(255,255,255,0.4);">
+                        {% if m.match_time %}{{ '%02d:%02d' | format(m.match_time.seconds // 3600, (m.match_time.seconds
+                        % 3600) // 60) }}{% else %}—{% endif %}
+                    </td>
+                    <td style="text-align:right;font-weight:600;">{{ m.team1_name }}</td>
+                    <td style="text-align:center;white-space:nowrap;">
+                        <input type="number" class="score-input" id="s1-{{ m.match_id }}"
+                            value="{{ m.team1_score if m.team1_score is not none else '' }}" placeholder="—" min="0">
+                        <span class="vs-sep">:</span>
+                        <input type="number" class="score-input" id="s2-{{ m.match_id }}"
+                            value="{{ m.team2_score if m.team2_score is not none else '' }}" placeholder="—" min="0">
+                    </td>
+                    <td style="font-weight:600;">{{ m.team2_name }}</td>
+                    <td>
+                        <button class="save-btn" data-id="{{ m.match_id }}" onclick="saveScore(this)">Save</button>
+                        <span class="saved-badge" id="badge-{{ m.match_id }}">✓ Saved</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;color:rgba(255,255,255,0.2);padding:32px;">No matches found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- EDIT TEAM MODAL -->
+<div class="modal-overlay" id="editTeamModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Edit Team</h3>
+            <button class="modal-close" onclick="closeModal('editTeamModal')">×</button>
+        </div>
+        <form method="POST" id="editTeamForm" enctype="multipart/form-data">
+            <div class="form-row">
+                <label>Team Name *</label>
+                <input name="name" id="et_name" required placeholder="e.g. Team Liquid">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
+                <div class="form-row">
+                    <label>Short Name</label>
+                    <input name="short_name" id="et_short" maxlength="20" placeholder="e.g. TL">
+                </div>
+                <div class="form-row">
+                    <label>Founded Year</label>
+                    <input name="founded_year" id="et_year" type="number" min="1900" max="2100" placeholder="e.g. 2015">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>Tournament</label>
+                <select name="tournament_id" id="et_tournament">
+                    <option value="">-- Tournament --</option>
+                    {% for t in data.tournaments_list %}<option value="{{ t.tournament_id }}">{{ t.name }}</option>{%
+                    endfor %}
+                </select>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section-label">📝 Details</div>
+            <div class="form-row">
+                <label>Description</label>
+                <textarea name="description" id="et_desc" rows="3" placeholder="Team description..."></textarea>
+            </div>
+            <div class="form-row">
+                <label>Logo (leave blank to keep current)</label>
+                <input type="file" name="logo" accept="image/*">
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-save">Save Changes</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('editTeamModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT PLAYER MODAL -->
+<div class="modal-overlay" id="editPlayerModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Edit Player</h3>
+            <button class="modal-close" onclick="closeModal('editPlayerModal')">×</button>
+        </div>
+        <form method="POST" id="editPlayerForm" enctype="multipart/form-data">
+            <div class="form-row">
+                <label>Nickname *</label>
+                <input name="nickname" id="ep_nick" required placeholder="e.g. s1mple">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
+                <div class="form-row">
+                    <label>Role</label>
+                    <select name="role" id="ep_role">
+                        <option value="">-- Role --</option>
+                        {% for r in all_roles %}<option>{{ r }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Nationality</label>
+                    <input name="nationality" id="ep_nationality" maxlength="10" placeholder="e.g. TH">
+                </div>
+                <div class="form-row">
+                    <label>Team</label>
+                    <select name="team_id" id="ep_team">
+                        <option value="">-- Team --</option>
+                        {% for t in data.teams_list %}<option value="{{ t.team_id }}">{{ t.team_name }}</option>{%
+                        endfor %}
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Game</label>
+                    <select name="game_id" id="ep_game">
+                        <option value="">-- Game --</option>
+                        {% for g in data.games_list %}<option value="{{ g.game_id }}">{{ g.game_name }}</option>{%
+                        endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section-label">🔗 Social & Media</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
+                <div class="form-row">
+                    <label>Instagram URL</label>
+                    <input name="instagram" id="ep_instagram" placeholder="https://instagram.com/...">
+                </div>
+                <div class="form-row">
+                    <label>YouTube URL</label>
+                    <input name="youtube" id="ep_youtube" placeholder="https://youtube.com/...">
+                </div>
+            </div>
+            <div class="form-row">
+                <label>Cover Image URL</label>
+                <input name="cover_image" id="ep_cover" placeholder="https://...">
+            </div>
+            <div class="modal-divider"></div>
+            <div class="modal-section-label">📝 About</div>
+            <div class="form-row">
+                <label>Bio</label>
+                <textarea name="bio" id="ep_bio" rows="4" placeholder="Player bio..."></textarea>
+            </div>
+            <div class="form-row">
+                <label>Achievements</label>
+                <textarea name="achievements" id="ep_achievements" rows="3"
+                    placeholder="e.g. VCT 2023 Pacific MVP..."></textarea>
+            </div>
+            <div class="form-row">
+                <label>Photo (leave blank to keep current)</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-save">Save Changes</button>
+                <button type="button" class="btn-cancel" onclick="closeModal('editPlayerModal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditTeam(btn) {
+        document.getElementById('et_name').value = btn.getAttribute('data-name');
+        document.getElementById('et_short').value = btn.getAttribute('data-short');
+        document.getElementById('et_year').value = btn.getAttribute('data-year');
+        document.getElementById('et_desc').value = btn.getAttribute('data-desc');
+        var tournamentId = btn.getAttribute('data-tourney');
+        var ts = document.getElementById('et_tournament');
+        for (var i = 0; i < ts.options.length; i++) ts.options[i].selected = ts.options[i].value == tournamentId;
+        document.getElementById('editTeamForm').action = '/admin/edit_team/' + btn.getAttribute('data-id');
+        document.getElementById('editTeamModal').classList.add('open');
+    }
+    function openEditPlayer(btn) {
+        document.getElementById('ep_nick').value = btn.getAttribute('data-nick');
+        document.getElementById('ep_bio').value = btn.getAttribute('data-bio');
+        document.getElementById('ep_achievements').value = btn.getAttribute('data-achievements');
+        document.getElementById('ep_instagram').value = btn.getAttribute('data-ig');
+        document.getElementById('ep_youtube').value = btn.getAttribute('data-yt');
+        document.getElementById('ep_cover').value = btn.getAttribute('data-cover');
+        document.getElementById('ep_nationality').value = btn.getAttribute('data-nat');
+        var role = btn.getAttribute('data-role');
+        var teamId = btn.getAttribute('data-team');
+        var gameId = btn.getAttribute('data-game');
+        var rs = document.getElementById('ep_role');
+        var ts = document.getElementById('ep_team');
+        var gs = document.getElementById('ep_game');
+        for (var i = 0; i < rs.options.length; i++) rs.options[i].selected = rs.options[i].value === role;
+        for (var i = 0; i < ts.options.length; i++) ts.options[i].selected = ts.options[i].value == teamId;
+        for (var i = 0; i < gs.options.length; i++) gs.options[i].selected = gs.options[i].value == gameId;
+        document.getElementById('editPlayerForm').action = '/admin/edit_player/' + btn.getAttribute('data-id');
+        document.getElementById('editPlayerModal').classList.add('open');
+    }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    document.querySelectorAll('.modal-overlay').forEach(function (el) {
+        el.addEventListener('click', function (e) { if (e.target === el) el.classList.remove('open'); });
+    });
+
+    // Teleport modals to <body> so they escape overflow:hidden containers
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.modal-overlay').forEach(function (el) {
+            document.body.appendChild(el);
+        });
+    });
+
+    // --- MATCH SCORES ---
+    function saveScore(btn) {
+        var matchId = btn.getAttribute('data-id');
+        var s1 = document.getElementById('s1-' + matchId).value;
+        var s2 = document.getElementById('s2-' + matchId).value;
+        if (s1 === '' || s2 === '') { alert('กรุณากรอกสกอร์ให้ครบ'); return; }
+        fetch('/admin/update_score/' + matchId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ team1_score: parseInt(s1), team2_score: parseInt(s2) })
+        }).then(function (res) {
+            if (res.ok) {
+                var b = document.getElementById('badge-' + matchId);
+                b.classList.add('show');
+                setTimeout(function () { b.classList.remove('show'); }, 2000);
+            }
+        });
+    }
+
+    // --- ADMIN MODALS ---
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+
+    function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('show');
+        } else {
+            console.error('Modal ID not found:', modalId);
+        }
+    }
+
+    window.onclick = function (event) {
+        const adminModals = document.querySelectorAll('.admin-modal, .modal-overlay');
+        adminModals.forEach(function (modal) {
+            if (event.target == modal) {
+                modal.classList.remove('show');
+                modal.classList.remove('open');
+            }
+        });
+    };
+
+    // --- TABLE SEARCH ---
+    function filterTable(inputMenu, tableId) {
+        let filter = inputMenu.value.toUpperCase();
+        let table = document.getElementById(tableId);
+        if (!table) return;
+        let tr = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < tr.length; i++) {
+            let rowText = tr[i].textContent || tr[i].innerText;
+            if (rowText.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+
+    // --- TABLE SORT ---
+    function sortTable(tableId, n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById(tableId);
+        if (!table) return;
+        switching = true;
+        dir = "asc";
+
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (!x || !y) continue;
+
+                let cmpX = isNaN(x.innerText) ? x.innerText.toLowerCase() : parseFloat(x.innerText);
+                let cmpY = isNaN(y.innerText) ? y.innerText.toLowerCase() : parseFloat(y.innerText);
+
+                if (dir == "asc") {
+                    if (cmpX > cmpY) { shouldSwitch = true; break; }
+                } else if (dir == "desc") {
+                    if (cmpX < cmpY) { shouldSwitch = true; break; }
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == "asc") {
+                    dir = "desc";
+                    switching = true;
+                }
+            }
+        }
+    }
+</script>
+
+{% endblock %}
